@@ -109,21 +109,31 @@ async function startServer() {
       }
 
       if (!resend) {
-        console.warn("Resend API Key is missing. Message logged to console:", message);
-        return res.json({ success: true, message: "تم تسجيل رسالتك (برجاء تهيئة مفتاح Resend للإرسال الحقيقي)" });
+        console.error("Resend API Key is missing (RESEND_API_KEY). Please add it to Secrets in AI Studio Settings.");
+        return res.status(500).json({ error: "خطأ: مفتاح RESEND_API_KEY غير موجود في إعدادات المنصة (Secrets). يرجى إضافته ليعمل الإرسال." });
       }
 
+      console.log(`[CONTACT FORM] Attempting to send email via Resend...`);
+      
       const { data, error } = await resend.emails.send({
         from: 'Dua App <onboarding@resend.dev>',
         to: ['emadh5156@gmail.com'],
         subject: 'رسالة جديدة من تطبيق دعاء للمتوفى',
-        html: `<p><strong>من:</strong> ${email}</p><p><strong>الرسالة:</strong></p><p>${message}</p>`,
+        html: `<div dir="rtl" style="font-family: sans-serif; line-height: 1.6;">
+                <h2 style="color: #059669;">رسالة جديدة من الموقع</h2>
+                <p><strong>من بريد:</strong> ${email}</p>
+                <hr style="border: 1px solid #e5e7eb;" />
+                <p><strong>الرسالة:</strong></p>
+                <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">${message}</div>
+               </div>`,
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error("Resend Error Response:", error);
+        return res.status(400).json({ error: `فشل الإرسال من المزود: ${error.message}. (تأكد من أن البريد المستلم هو نفس بريد حساب Resend إذا كنت تستخدم الحساب المجاني)` });
       }
       
+      console.log("[CONTACT FORM] Email sent successfully:", data?.id);
       res.json({ success: true, message: "تم إرسال رسالتك بنجاح إلى الإدارة" });
     } catch (error: any) {
       console.error("Contact Form error:", error);

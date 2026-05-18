@@ -647,6 +647,11 @@ export default function App() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const target = e.target as any;
+                  const submitBtn = target.querySelector('button[type="submit"]');
+                  const originalText = submitBtn.innerText;
+                  submitBtn.disabled = true;
+                  submitBtn.innerText = "جاري الإرسال...";
+
                   const formData = {
                     email: target.email.value,
                     message: target.message.value
@@ -657,40 +662,51 @@ export default function App() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(formData)
                     });
+                    const data = await res.json();
                     if (res.ok) {
-                      alert("تم إرسال رسالتك بنجاح وسنتواصل معك قريباً.");
+                      alert("✅ تم إرسال رسالتك بنجاح إلى الإدارة.");
                       setActiveModal(null);
+                    } else {
+                      alert("⚠️ فشل الإرسال: " + (data.error || "تأكد من ضبط RESEND_API_KEY"));
                     }
                   } catch (err) {
-                    alert("فشل الإرسال، يرجى المحاولة لاحقاً.");
+                    alert("❌ حدث خطأ في الشبكة، يرجى المحاولة لاحقاً.");
+                  } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = originalText;
                   }
                 }}
                 className="space-y-4"
               >
-                <p>نحن نسعد باستقبال مقترحاتكم واستفساراتكم:</p>
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900 mb-2">
+                  <p className="text-emerald-800 dark:text-emerald-300 text-sm leading-relaxed">
+                    سيتم إرسال رسالتك مباشرة إلى: <br/>
+                    <span className="font-bold">emadh5156@gmail.com</span>
+                  </p>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">بريدك الإلكتروني</label>
+                  <label className="block text-sm font-bold mb-1 text-emerald-800 dark:text-emerald-300">بريدك الإلكتروني</label>
                   <input 
                     name="email" 
                     type="email" 
                     required 
-                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-right"
                     placeholder="example@mail.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">رسالتك</label>
+                  <label className="block text-sm font-bold mb-1 text-emerald-800 dark:text-emerald-300">رسالتك</label>
                   <textarea 
                     name="message" 
                     required 
                     rows={4}
-                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-right"
                     placeholder="اكتب رسالتك هنا..."
                   />
                 </div>
                 <button 
                   type="submit"
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 dark:shadow-none transition-all animate-pulse-slow"
+                  className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 dark:shadow-none transition-all disabled:opacity-50"
                 >
                   إرسال الرسالة
                 </button>

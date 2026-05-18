@@ -27,6 +27,8 @@ export const loginWithGoogle = async () => {
       alert("يرجى السماح بالنوافذ المنبثقة في متصفحك أو فتح التطبيق في نافذة جديدة (أعلى اليسار).");
     } else if (error.code === 'auth/popup-closed-by-user') {
       alert("لقد قمت بإغلاق نافذة تسجيل الدخول قبل اكتمال العملية. يرجى المحاولة مرة أخرى.");
+    } else if (error.code === 'auth/unauthorized-domain') {
+      alert("⚠️ النطاق الحالي غير مصرح به في إعدادات Firebase.\n\nيرجى إضافة الروابط التالية إلى Authorized Domains في لوحة تحكم Firebase:\n1. ais-dev-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app\n2. ais-pre-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app");
     } else if (error.code === 'auth/cancelled-popup-request') {
       // Ignore parallel requests
     } else {
