@@ -19,9 +19,9 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
-import { GoogleGenAI, Modality } from "@google/genai";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, loginWithGoogle, logout, handleRedirectResult } from './lib/firebase';
 import { TRANSLATIONS, KINSHIP_OPTIONS, Language, VoiceType } from './types';
@@ -68,6 +68,7 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
 export default function App() {
   const [user] = useAuthState(auth);
   const [lang, setLang] = useState<Language>('ar');
+  const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | 'about' | 'contact' | null>(null);
 
   useEffect(() => {
     handleRedirectResult();
@@ -88,6 +89,30 @@ export default function App() {
   const t = TRANSLATIONS[lang];
   const isRtl = lang === 'ar';
 
+  const Modal = ({ title, content, onClose }: { title: string, content: React.ReactNode, onClose: () => void }) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white dark:bg-stone-900 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[2rem] p-6 sm:p-10 shadow-2xl relative border border-emerald-100 dark:border-emerald-800"
+      >
+        <button 
+          onClick={onClose} 
+          className="absolute top-6 left-6 p-2 rounded-full bg-stone-100 dark:bg-stone-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-stone-500 dark:text-stone-400 hover:text-emerald-600 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <h3 className="text-2xl font-bold mb-6 text-emerald-900 dark:text-emerald-100 leading-tight">
+          {title}
+        </h3>
+        <div className="text-stone-600 dark:text-stone-300 space-y-6 text-lg leading-relaxed text-right">
+          {content}
+        </div>
+      </motion.div>
+    </div>
+  );
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -100,19 +125,17 @@ export default function App() {
     if (!duaText.trim() || isTranslating) return;
     setIsTranslating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      // If UI is Arabic, user likely wants English translation. If UI is English, they likely want Arabic.
-      const targetLang = lang === 'ar' ? 'English' : 'Arabic';
-      const prompt = `Translate the following Islamic Dua (prayer) to ${targetLang}. Ensure it is accurate, respectful, and maintains the spiritual meaning. Only return the translated text without any explanations, quotes, or extra text: "${duaText}"`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ parts: [{ text: prompt }] }],
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: duaText, 
+          targetLang: lang === 'ar' ? 'English' : 'Arabic' 
+        })
       });
-
-      const resultText = response.text;
-      if (resultText) {
-        setDuaText(resultText.trim());
+      const data = await response.json();
+      if (data.text) {
+        setDuaText(data.text);
       }
     } catch (error) {
       console.error("Translation Error:", error);
@@ -123,19 +146,17 @@ export default function App() {
   };
 
   const handleDiacritics = async () => {
-    if (!duaText.trim()) return;
+    if (!duaText.trim() || isDiacritizing) return;
     setIsDiacritizing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `Add full Arabic diacritics (Tashkeel/Harakat) to the following text. Ensure it is grammatically correct and suitable for professional recitation. Only return the text with diacritics, no other text: "${duaText}"`;
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
+      const response = await fetch('/api/diacritics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: duaText })
       });
-
-      if (response.text) {
-        setDuaText(response.text.trim());
+      const data = await response.json();
+      if (data.text) {
+        setDuaText(data.text);
       }
     } catch (error) {
       console.error("Diacritics Error:", error);
@@ -149,25 +170,21 @@ export default function App() {
     if (!duaText.trim() || isAiGenerating) return;
     setIsAiGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const selectedKinship = KINSHIP_OPTIONS.find(opt => opt.id === kinship);
       const kinshipLabel = selectedKinship?.id !== 'custom' ? selectedKinship?.label[lang] : '';
       
-      const prompt = `Act as an Islamic scholar. Create a beautiful, emotional, and comprehensive Dua for the deceased based on this input: "${duaText}". 
-      The person is my ${kinshipLabel}. 
-      Include prayers for forgiveness, mercy, and paradise. 
-      Mention the input name/relation at the beginning (e.g., "Allahummarham [Input]..." or "اللهم ارحم [الاسم/الصلة]..."). 
-      Language: ${lang === 'ar' ? 'Arabic' : 'English'}.
-      Ensure the grammar is perfect. Only return the Dua text, no explanations or quotes.`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ parts: [{ text: prompt }] }],
+      const response = await fetch('/api/generate-dua', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: duaText, 
+          kinship: kinshipLabel, 
+          language: lang === 'ar' ? 'Arabic' : 'English' 
+        })
       });
-
-      const generatedDua = response.text?.trim();
-      if (generatedDua) {
-        setDuaText(generatedDua);
+      const data = await response.json();
+      if (data.text) {
+        setDuaText(data.text);
       }
     } catch (error) {
       console.error("AI Generation Error:", error);
@@ -178,7 +195,7 @@ export default function App() {
   };
 
   const handleGenerateAudio = async () => {
-    if (!duaText.trim()) return;
+    if (!duaText.trim() || isLoading) return;
     
     if (!user) {
       const confirmed = confirm(t.loginToVoice);
@@ -190,61 +207,25 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      // Get the selected kinship option
-      const selectedKinship = KINSHIP_OPTIONS.find(opt => opt.id === kinship);
-      const kinshipLabel = selectedKinship ? selectedKinship.label[lang] : '';
-      
-      let fullDuaText = duaText;
-
-      if (kinship !== 'custom') {
-        // Smart adaptation: Use AI to adjust pronouns and gender based on kinship
-        const adaptationPrompt = `Rewrite the following Islamic Dua (prayer) to be specifically for "${kinshipLabel}". 
-        Adjust all pronouns and gender-specific words to match (e.g., in Arabic change 'له' to 'لها' if female, or 'him' to 'her' in English). 
-        Ensure the grammar is perfect and respectful. 
-        Only return the adapted text without any quotes or extra words: "${duaText}"`;
-
-        const adaptationResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [{ parts: [{ text: adaptationPrompt }] }],
-        });
-
-        const adaptedText = adaptationResponse.text?.trim() || duaText;
-        
-        // Prepend the kinship prefix if not already included by the AI
-        const prefix = selectedKinship ? selectedKinship.prefix[lang] : '';
-        // Check if the adapted text already starts with a similar invocation to avoid redundancy
-        fullDuaText = adaptedText.includes(prefix.trim()) ? adaptedText : `${prefix}${adaptedText}`;
-      }
-
-      // Map voice types to Gemini prebuilt voices
-      // Kore/Puck for child-like, Fenrir/Charon for man-like
-      const voiceName = voiceType === 'child' ? 'Kore' : 'Fenrir';
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: fullDuaText }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName },
-            },
-          },
-        },
+      const response = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: duaText, 
+          voiceType: voiceType 
+        })
       });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const byteCharacters = atob(base64Audio);
+      
+      const data = await response.json();
+      
+      if (data.audioData) {
+        const byteCharacters = atob(data.audioData);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
         
-        // Add WAV header to make it playable by standard players
         const blob = pcmToWav(byteArray, 24000);
         const url = URL.createObjectURL(blob);
         
@@ -264,9 +245,11 @@ export default function App() {
             });
           }
         }
+      } else {
+        throw new Error(data.error || "No audio data received");
       }
     } catch (error) {
-      console.error("TTS Error:", error);
+      console.error("Audio Generation Error:", error);
       alert(t.error);
     } finally {
       setIsLoading(false);
@@ -326,15 +309,20 @@ export default function App() {
               </button>
             </motion.div>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => loginWithGoogle()}
-              className="flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium shadow-md shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              <span className="hidden xs:inline">{t.loginBtn}</span>
-            </motion.button>
+            <div className="flex flex-col items-center gap-1">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => loginWithGoogle()}
+                className="flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium shadow-md shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden xs:inline">{t.loginBtn}</span>
+              </motion.button>
+              <p className="text-[9px] text-stone-400 dark:text-stone-500 whitespace-nowrap">
+                {lang === 'ar' ? 'افتح في نافذة جديدة إذا فشل الدخول' : 'Open in new tab if login fails'}
+              </p>
+            </div>
           )}
 
           <motion.button
@@ -362,14 +350,18 @@ export default function App() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-12 flex flex-col items-center"
         >
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4 text-emerald-900 dark:text-emerald-100">
-            {t.title}
-          </h2>
-          <p className="text-stone-600 dark:text-stone-400 text-lg italic">
-            {t.subtitle}
-          </p>
+          <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-6 px-10 rounded-3xl border-2 border-emerald-100 dark:border-emerald-800 shadow-sm relative overflow-hidden inline-flex flex-col items-center">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-50" />
+            <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-emerald-900 dark:text-emerald-100 flex items-center justify-center gap-3">
+              <User className="w-8 h-8 text-emerald-600" />
+              {t.title}
+            </h2>
+            <p className="text-emerald-700 dark:text-emerald-300 text-lg font-medium italic opacity-90">
+              {t.subtitle}
+            </p>
+          </div>
         </motion.div>
 
         <div className="grid gap-8">
@@ -590,9 +582,76 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="mt-20 p-8 text-center text-stone-500 dark:text-stone-500 text-sm">
-        <p>© {new Date().getFullYear()} {t.title} - {t.subtitle}</p>
+
+      <footer className="max-w-4xl mx-auto p-8 mt-12 border-t border-emerald-100 dark:border-emerald-800 text-center">
+        <div className="flex flex-wrap justify-center gap-6 mb-4 text-sm text-emerald-700 dark:text-emerald-400 font-medium">
+          <button onClick={() => setActiveModal('privacy')} className="hover:underline">سياسة الخصوصية</button>
+          <button onClick={() => setActiveModal('terms')} className="hover:underline">شروط الاستخدام</button>
+          <button onClick={() => setActiveModal('contact')} className="hover:underline">اتصل بنا</button>
+          <button onClick={() => setActiveModal('about')} className="hover:underline">من نحن</button>
+        </div>
+        <p className="text-xs text-stone-500 dark:text-stone-400">
+          © {new Date().getFullYear()} دعاء للمتوفى - صدقة جارية. جميع الحقوق محفوظة.
+          <br />
+          هذا البرنامج تم تطويره ليكون صدقة جارية، يرجى استخدامه فيما يرضي الله.
+        </p>
       </footer>
+
+      <AnimatePresence>
+        {activeModal === 'privacy' && (
+          <Modal 
+            title="سياسة الخصوصية" 
+            onClose={() => setActiveModal(null)}
+            content={
+              <div className="space-y-4">
+                <p>نحن نقدر خصوصيتك. هذا التطبيق يستخدم خدمة Google Firebase لتأمين حسابك وحفظ بياناتك الأساسية (الاسم والبريد الإلكتروني).</p>
+                <p>لا نقوم بمشاركة بياناتك مع أي جهات خارجية خارج خدمات جوجل الضرورية لتشغيل البرنامج.</p>
+                <p>يتم استخدام ملفات تعريف الارتباط فقط لغرض المصادقة والحفاظ على جلسة تسجيل الدخول الخاصة بك.</p>
+              </div>
+            }
+          />
+        )}
+        {activeModal === 'terms' && (
+          <Modal 
+            title="شروط الاستخدام" 
+            onClose={() => setActiveModal(null)}
+            content={
+              <div className="space-y-4">
+                <p>باستخدامك لهذا التطبيق، فإنك توافق على الالتزام بالشروط التالية:</p>
+                <ul className="list-disc pr-6 space-y-2">
+                  <li>استخدام البرنامج في الأغراض المخصصة له (الأدعية والأذكار).</li>
+                  <li>عدم إساءة استخدام خدمة توليد الصوت أو الذكاء الاصطناعي.</li>
+                  <li>المحافظة على سرية حسابك المرتبط بجوجل.</li>
+                </ul>
+              </div>
+            }
+          />
+        )}
+        {activeModal === 'about' && (
+          <Modal 
+            title="من نحن" 
+            onClose={() => setActiveModal(null)}
+            content={
+              <div className="space-y-4">
+                <p>تطبيق "دعاء للمتوفى" هو منصة رقمية تهدف لتيسير الدعاء لموتى المسلمين باستخدام أحدث تقنيات الذكاء الاصطناعي.</p>
+                <p>نحن نسعى لأن يكون هذا العمل صدقة جارية مقبولة في موازين حسناتنا وحسناتكم.</p>
+              </div>
+            }
+          />
+        )}
+        {activeModal === 'contact' && (
+          <Modal 
+            title="اتصل بنا" 
+            onClose={() => setActiveModal(null)}
+            content={
+              <div className="space-y-4">
+                <p>إذا كانت لديك أي استفسارات أو مقترحات لتطوير التطبيق، يمكنك التواصل معنا عبر البريد الإلكتروني:</p>
+                <p className="font-bold text-emerald-700">support@dua-deceased.com</p>
+              </div>
+            }
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
