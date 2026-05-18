@@ -7,8 +7,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -108,14 +106,16 @@ async function startServer() {
         return res.status(400).json({ error: "البريد والرسالة مطلوبان" });
       }
 
-      if (!resend) {
-        console.error("Resend API Key is missing (RESEND_API_KEY). Please add it to Secrets in AI Studio Settings.");
-        return res.status(500).json({ error: "خطأ: مفتاح RESEND_API_KEY غير موجود في إعدادات المنصة (Secrets). يرجى إضافته ليعمل الإرسال." });
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        console.error("RESEND_API_KEY is missing in process.env");
+        return res.status(500).json({ error: "خطأ: لم يتم العثور على مفتاح RESEND_API_KEY. تأكد من كتابة الاسم صحيحاً في Secrets." });
       }
 
-      console.log(`[CONTACT FORM] Attempting to send email via Resend...`);
+      const resendClient = new Resend(apiKey);
+      console.log(`[CONTACT FORM] Attempting delivery to emadh5156@gmail.com...`);
       
-      const { data, error } = await resend.emails.send({
+      const { data, error } = await resendClient.emails.send({
         from: 'Dua App <onboarding@resend.dev>',
         to: ['emadh5156@gmail.com'],
         subject: 'رسالة جديدة من تطبيق دعاء للمتوفى',
@@ -129,14 +129,14 @@ async function startServer() {
       });
 
       if (error) {
-        console.error("Resend Error Response:", error);
-        return res.status(400).json({ error: `فشل الإرسال من المزود: ${error.message}. (تأكد من أن البريد المستلم هو نفس بريد حساب Resend إذا كنت تستخدم الحساب المجاني)` });
+        console.error("Resend delivery error:", error);
+        return res.status(400).json({ error: `فشل الإرسال: ${error.message}` });
       }
       
-      console.log("[CONTACT FORM] Email sent successfully:", data?.id);
-      res.json({ success: true, message: "تم إرسال رسالتك بنجاح إلى الإدارة" });
+      console.log("[CONTACT FORM] Sent successfully:", data?.id);
+      res.json({ success: true, message: "تم إرسال رسالتك بنجاح" });
     } catch (error: any) {
-      console.error("Contact Form error:", error);
+      console.error("Server contact error:", error);
       res.status(500).json({ error: error.message });
     }
   });
