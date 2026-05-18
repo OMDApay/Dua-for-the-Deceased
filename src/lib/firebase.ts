@@ -24,7 +24,13 @@ export const loginWithGoogle = async () => {
   } catch (error: any) {
     console.error("Login Error:", error);
     if (error.code === 'auth/popup-blocked') {
-      alert("يرجى السماح بالنوافذ المنبثقة في متصفحك أو فتح التطبيق في نافذة جديدة خارج المعاينة.");
+      alert("يرجى السماح بالنوافذ المنبثقة في متصفحك أو فتح التطبيق في نافذة جديدة (أعلى اليسار).");
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      alert("لقد قمت بإغلاق نافذة تسجيل الدخول قبل اكتمال العملية. يرجى المحاولة مرة أخرى.");
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      // Ignore parallel requests
+    } else {
+      alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
     }
   }
   return null;
