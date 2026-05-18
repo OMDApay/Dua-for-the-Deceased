@@ -1,0 +1,26 @@
+{
+  "collections": [
+    {
+      "collectionId": "users",
+      "description": "Stores user profiles and their usage metadata",
+      "fields": [
+        {
+          "description": "Last time the user signed in",
+          "fieldName": "lastSeen",
+          "type": "timestamp"
+        },
+        {
+          "description": "Total number of audio generations by this user",
+          "fieldName": "generationsCount",
+          "type": "number"
+        }
+      ],
+      "rules": [
+        {
+          "allow": "read, write",
+          "condition": "request.auth != null && request.auth.uid == userId"
+        }
+      ]
+    }
+  ]
+}

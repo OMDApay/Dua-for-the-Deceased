@@ -21,6 +21,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth, signInWithGoogle, logout } from './lib/firebase';
 import { TRANSLATIONS, KINSHIP_OPTIONS, Language, VoiceType } from './types';
 
 // Helper to add WAV header to raw PCM data
@@ -63,6 +65,7 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
 }
 
 export default function App() {
+  const [user] = useAuthState(auth);
   const [lang, setLang] = useState<Language>('ar');
   const [isDark, setIsDark] = useState(false);
   const [duaText, setDuaText] = useState('');
@@ -86,6 +89,14 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [isDark]);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      // Error handled in firebase.ts (silent for popup closure)
+    }
+  };
 
   const handleTranslate = async () => {
     if (!duaText.trim() || isTranslating) return;
@@ -170,6 +181,15 @@ export default function App() {
 
   const handleGenerateAudio = async () => {
     if (!duaText.trim()) return;
+    if (!user) {
+      try {
+        const loggedInUser = await signInWithGoogle();
+        if (!loggedInUser) return;
+      } catch (e) {
+        alert(t.error);
+        return;
+      }
+    }
     
     setIsLoading(true);
     try {
@@ -290,7 +310,29 @@ export default function App() {
           <h1 className="text-xl font-bold gold-text hidden sm:block">{t.title}</h1>
         </motion.div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {user ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => logout()}
+              className="p-2 rounded-full glass-card flex items-center gap-2 px-4 text-xs font-medium text-red-600 dark:text-red-400"
+            >
+              <User className="w-4 h-4" />
+              {t.logoutBtn}
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogin}
+              className="p-2 rounded-full glass-card flex items-center gap-2 px-4 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+            >
+              <Sparkles className="w-4 h-4" />
+              {t.loginBtn}
+            </motion.button>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
