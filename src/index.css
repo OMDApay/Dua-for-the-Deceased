@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic", "Amiri", serif;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-900 transition-colors duration-300;
+  }
+  
+  .dark body {
+    @apply bg-stone-950 text-stone-100;
+  }
+}
+
+.islamic-pattern {
+  background-image: url("https://www.transparenttextures.com/patterns/arabesque.png");
+}
+
+.islamic-gradient {
+  @apply bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900;
+}
+
+.gold-text {
+  @apply bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-bold;
+}
+
+.glass-card {
+  @apply bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border border-stone-200 dark:border-stone-800 shadow-xl;
+}
