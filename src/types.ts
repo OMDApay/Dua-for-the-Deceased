@@ -49,9 +49,6 @@ export const TRANSLATIONS = {
     diacritizing: 'جاري التشكيل...',
     aiGenerateBtn: 'توليد دعاء ذكي',
     aiGenerating: 'جاري التوليد...',
-    loginBtn: 'تسجيل الدخول بجوجل',
-    logoutBtn: 'تسجيل الخروج',
-    loginRequired: 'يرجى تسجيل الدخول لتوليد الصوت أو استخدام الذكاء الاصطناعي',
     error: 'حدث خطأ ما، يرجى المحاولة مرة أخرى',
   },
   en: {
@@ -76,9 +73,6 @@ export const TRANSLATIONS = {
     diacritizing: 'Processing...',
     aiGenerateBtn: 'AI Dua Generator',
     aiGenerating: 'Generating...',
-    loginBtn: 'Sign in with Google',
-    logoutBtn: 'Sign Out',
-    loginRequired: 'Please sign in to generate audio or use AI features',
     error: 'Something went wrong, please try again',
   }
 };
