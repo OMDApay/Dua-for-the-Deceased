@@ -113,11 +113,12 @@ async function startServer() {
       }
 
       const resendClient = new Resend(apiKey);
-      console.log(`[CONTACT FORM] Attempting delivery to emadh5156@gmail.com...`);
+      const recipientEmail = process.env.CONTACT_EMAIL || 'emadh5156@gmail.com';
+      console.log(`[CONTACT FORM] Attempting delivery...`);
       
       const { data, error } = await resendClient.emails.send({
         from: 'Dua App <onboarding@resend.dev>',
-        to: ['emadh5156@gmail.com'],
+        to: [recipientEmail],
         subject: 'رسالة جديدة من تطبيق دعاء للمتوفى',
         html: `<div dir="rtl" style="font-family: sans-serif; line-height: 1.6;">
                 <h2 style="color: #059669;">رسالة جديدة من الموقع</h2>
