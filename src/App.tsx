@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, loginWithGoogle, logout } from './lib/firebase';
+import { auth, loginWithGoogle, logout, handleRedirectResult } from './lib/firebase';
 import { TRANSLATIONS, KINSHIP_OPTIONS, Language, VoiceType } from './types';
 
 // Helper to add WAV header to raw PCM data
@@ -68,6 +68,10 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
 export default function App() {
   const [user] = useAuthState(auth);
   const [lang, setLang] = useState<Language>('ar');
+
+  useEffect(() => {
+    handleRedirectResult();
+  }, []);
 
   const [isDark, setIsDark] = useState(false);
   const [duaText, setDuaText] = useState('');
