@@ -35,15 +35,17 @@ export const loginWithGoogle = async () => {
       console.log("Popup closed by user");
     } else if (error.code === 'auth/unauthorized-domain') {
       const currentDomain = window.location.hostname;
+      const projectId = firebaseConfig.projectId;
       alert(`⚠️ خطأ في الإعدادات (Authorized Domain):
       
-النطاق الحالي [ ${currentDomain} ] غير مصرح به.
+النطاق الحالي [ ${currentDomain} ] غير مصرح به في مشروع Firebase المستخدم حالياً.
+
+المشروع الفعلي المستخدم في الكود هو: [ ${projectId} ]
 
 لحل المشكلة:
-1- اذهب إلى Firebase Console -> Authentication.
-2- اختر التبويب "Settings" بالأعلى.
-3- اختر "Authorized domains" من القائمة الجانبية.
-4- اضغط "Add domain" وأضف النطاق المذكور أعلاه.`);
+1- اذهب إلى Firebase Console -> المشروع المستهدف.
+2- اختر Authentication -> Settings.
+3- أضف النطاق المذكور أعلاه في Authorized domains.`);
     } else if (error.code === 'auth/cancelled-popup-request') {
       // Ignore
     } else {

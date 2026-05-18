@@ -662,6 +662,13 @@ export default function App() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(formData)
                     });
+                    
+                    // If we get an HTML response or 404, it means the API route doesn't exist (e.g. GitHub Pages)
+                    const contentType = res.headers.get("content-type");
+                    if (!res.ok && contentType && contentType.includes("text/html")) {
+                      throw new Error("API_NOT_FOUND");
+                    }
+
                     const data = await res.json();
                     if (res.ok) {
                       alert("✅ تم إرسال رسالتك بنجاح إلى الإدارة.");
@@ -669,8 +676,12 @@ export default function App() {
                     } else {
                       alert("⚠️ فشل الإرسال: " + (data.error || "تأكد من ضبط RESEND_API_KEY"));
                     }
-                  } catch (err) {
-                    alert("❌ حدث خطأ في الشبكة، يرجى المحاولة لاحقاً.");
+                  } catch (err: any) {
+                    if (err.message === "API_NOT_FOUND" || window.location.hostname.includes("github.io")) {
+                      alert("❌ خطأ: خدمة المراسلة تتطلب خادماً خلفياً (Backend).\n\nالمراسلة تعمل فقط في معاينة AI Studio أو عند استضافة التطبيق كـ Full-stack App. لا يمكن تشغيلها على GitHub Pages.");
+                    } else {
+                      alert("❌ حدث خطأ في الشبكة، يرجى المحاولة لاحقاً.");
+                    }
                   } finally {
                     submitBtn.disabled = false;
                     submitBtn.innerText = originalText;
@@ -678,11 +689,8 @@ export default function App() {
                 }}
                 className="space-y-4"
               >
-                <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900 mb-2">
-                  <p className="text-emerald-800 dark:text-emerald-300 text-sm leading-relaxed">
-                    سيتم إرسال رسالتك مباشرة إلى: <br/>
-                    <span className="font-bold">emadh5156@gmail.com</span>
-                  </p>
+                <div className="space-y-4 font-arabic">
+                  <p className="text-stone-600 dark:text-stone-400 text-sm">نحن نسعد باستقبال مقترحاتكم واستفساراتكم، وسيتم الرد عليكم في أقرب وقت.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-1 text-emerald-800 dark:text-emerald-300">بريدك الإلكتروني</label>
