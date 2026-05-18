@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with usage tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "lastSeen": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    }
+  }
+}

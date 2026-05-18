@@ -18,9 +18,12 @@ import {
   MessageSquare,
   Volume2,
   VolumeX,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 import { GoogleGenAI, Modality } from "@google/genai";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth, loginWithGoogle, logout } from './lib/firebase';
 import { TRANSLATIONS, KINSHIP_OPTIONS, Language, VoiceType } from './types';
 
 // Helper to add WAV header to raw PCM data
@@ -63,6 +66,7 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
 }
 
 export default function App() {
+  const [user] = useAuthState(auth);
   const [lang, setLang] = useState<Language>('ar');
 
   const [isDark, setIsDark] = useState(false);
@@ -172,6 +176,14 @@ export default function App() {
   const handleGenerateAudio = async () => {
     if (!duaText.trim()) return;
     
+    if (!user) {
+      const confirmed = confirm(t.loginToVoice);
+      if (confirmed) {
+        await loginWithGoogle();
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -292,6 +304,35 @@ export default function App() {
         </motion.div>
 
         <div className="flex gap-2 items-center">
+          {user ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1 sm:gap-2 bg-emerald-50 dark:bg-emerald-950/30 p-1 pr-3 rounded-full border border-emerald-100 dark:border-emerald-800"
+            >
+              <span className="text-[10px] sm:text-xs font-medium text-emerald-700 dark:text-emerald-400 hidden sm:inline">
+                {user.displayName?.split(' ')[0]}
+              </span>
+              <button
+                onClick={() => logout()}
+                className="p-1.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-800 text-emerald-600 transition-colors"
+                title={t.logoutBtn}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => loginWithGoogle()}
+              className="flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium shadow-md shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden xs:inline">{t.loginBtn}</span>
+            </motion.button>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
