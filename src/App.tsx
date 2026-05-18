@@ -71,7 +71,7 @@ export default function App() {
   const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | 'about' | 'contact' | null>(null);
 
   useEffect(() => {
-    handleRedirectResult();
+    // No longer need handleRedirectResult
   }, []);
 
   const [isDark, setIsDark] = useState(false);
@@ -314,13 +314,13 @@ export default function App() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => loginWithGoogle()}
-                className="flex items-center gap-1 sm:gap-2 px-3 py-2 rounded-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium shadow-md shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors"
               >
                 <User className="w-4 h-4" />
-                <span className="hidden xs:inline">{t.loginBtn}</span>
+                <span>{t.loginBtn}</span>
               </motion.button>
-              <p className="text-[9px] text-stone-400 dark:text-stone-500 whitespace-nowrap">
-                {lang === 'ar' ? 'افتح في نافذة جديدة إذا فشل الدخول' : 'Open in new tab if login fails'}
+              <p className="text-[9px] text-red-500 font-bold bg-white/50 px-2 rounded-full">
+                {lang === 'ar' ? 'افتح في نافذة جديدة (أعلى اليسار) ليعمل الدخول' : 'Open in new tab to login'}
               </p>
             </div>
           )}
@@ -352,13 +352,12 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12 flex flex-col items-center"
         >
-          <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-6 px-10 rounded-3xl border-2 border-emerald-100 dark:border-emerald-800 shadow-sm relative overflow-hidden inline-flex flex-col items-center">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-50" />
-            <h2 className="text-3xl sm:text-4xl font-bold mb-2 text-emerald-900 dark:text-emerald-100 flex items-center justify-center gap-3">
-              <User className="w-8 h-8 text-emerald-600" />
+          <div className="bg-emerald-50/80 dark:bg-emerald-950/40 p-4 px-6 rounded-2xl border border-emerald-100 dark:border-emerald-800 shadow-sm relative overflow-hidden inline-flex flex-col items-center">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-1 text-emerald-900 dark:text-emerald-100 flex items-center justify-center gap-2">
+              <User className="w-6 h-6 text-emerald-600" />
               {t.title}
             </h2>
-            <p className="text-emerald-700 dark:text-emerald-300 text-lg font-medium italic opacity-90">
+            <p className="text-emerald-700 dark:text-emerald-300 text-sm font-medium italic opacity-90">
               {t.subtitle}
             </p>
           </div>
