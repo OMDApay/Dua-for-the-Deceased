@@ -129,8 +129,15 @@ async function startServer() {
       });
 
       if (error) {
-        console.error("Resend delivery error:", error);
-        return res.status(400).json({ error: `فشل الإرسال: ${error.message}` });
+        console.error("Resend delivery error details:", {
+          message: error.message,
+          name: error.name,
+          details: error
+        });
+        return res.status(400).json({ 
+          error: `فشل الإرسال: ${error.message}`,
+          tip: "إذا كنت تستخدم الحساب المجاني، يجب أن يكون البريد المستلم هو نفس بريد تسجيلك في Resend."
+        });
       }
       
       console.log("[CONTACT FORM] Sent successfully:", data?.id);

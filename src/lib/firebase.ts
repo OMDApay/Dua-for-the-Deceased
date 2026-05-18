@@ -8,7 +8,12 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.projectId);
 export const googleProvider = new GoogleAuthProvider();
 
+let isLoggingIn = false;
+
 export const loginWithGoogle = async () => {
+  if (isLoggingIn) return null;
+  isLoggingIn = true;
+  
   try {
     const result = await signInWithPopup(auth, googleProvider);
     if (result.user) {
@@ -24,16 +29,20 @@ export const loginWithGoogle = async () => {
   } catch (error: any) {
     console.error("Login Error:", error);
     if (error.code === 'auth/popup-blocked') {
-      alert("يرجى السماح بالنوافذ المنبثقة في متصفحك أو فتح التطبيق في نافذة جديدة (أعلى اليسار).");
+      alert("⚠️ يرجى السماح بالنوافذ المنبثقة في متصفحك أو فتح التطبيق في نافذة جديدة (أعلى اليسار).");
     } else if (error.code === 'auth/popup-closed-by-user') {
-      alert("لقد قمت بإغلاق نافذة تسجيل الدخول قبل اكتمال العملية. يرجى المحاولة مرة أخرى.");
+      // User closed it, no need for a big alert unless they keep failing
+      console.log("Popup closed by user");
     } else if (error.code === 'auth/unauthorized-domain') {
-      alert("⚠️ النطاق الحالي غير مصرح به في إعدادات Firebase.\n\nيرجى إضافة الروابط التالية إلى Authorized Domains في لوحة تحكم Firebase:\n1. ais-dev-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app\n2. ais-pre-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app");
+      const currentDomain = window.location.hostname;
+      alert(`⚠️ النطاق الحالي (${currentDomain}) غير مصرح به في Firebase.\n\nيجب إضافة هذه الروابط في Authorized Domains في لوحة تحكم Firebase:\n1. ais-dev-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app\n2. ais-pre-fpmjepx6opomauk2eke456-207953814639.europe-west3.run.app`);
     } else if (error.code === 'auth/cancelled-popup-request') {
-      // Ignore parallel requests
+      // Ignore
     } else {
       alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
     }
+  } finally {
+    isLoggingIn = false;
   }
   return null;
 };
