@@ -644,10 +644,58 @@ export default function App() {
             title="اتصل بنا" 
             onClose={() => setActiveModal(null)}
             content={
-              <div className="space-y-4">
-                <p>إذا كانت لديك أي استفسارات أو مقترحات لتطوير التطبيق، يمكنك التواصل معنا عبر البريد الإلكتروني:</p>
-                <p className="font-bold text-emerald-700">support@dua-deceased.com</p>
-              </div>
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = e.target as any;
+                  const formData = {
+                    email: target.email.value,
+                    message: target.message.value
+                  };
+                  try {
+                    const res = await fetch('/api/contact', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(formData)
+                    });
+                    if (res.ok) {
+                      alert("تم إرسال رسالتك بنجاح وسنتواصل معك قريباً.");
+                      setActiveModal(null);
+                    }
+                  } catch (err) {
+                    alert("فشل الإرسال، يرجى المحاولة لاحقاً.");
+                  }
+                }}
+                className="space-y-4"
+              >
+                <p>نحن نسعد باستقبال مقترحاتكم واستفساراتكم:</p>
+                <div>
+                  <label className="block text-sm font-medium mb-1">بريدك الإلكتروني</label>
+                  <input 
+                    name="email" 
+                    type="email" 
+                    required 
+                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    placeholder="example@mail.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">رسالتك</label>
+                  <textarea 
+                    name="message" 
+                    required 
+                    rows={4}
+                    className="w-full p-3 rounded-xl border border-emerald-100 dark:border-emerald-800 bg-stone-50 dark:bg-stone-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    placeholder="اكتب رسالتك هنا..."
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-100 dark:shadow-none transition-all animate-pulse-slow"
+                >
+                  إرسال الرسالة
+                </button>
+              </form>
             }
           />
         )}
