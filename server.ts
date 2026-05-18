@@ -2,9 +2,12 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 async function startServer() {
   const app = express();
@@ -105,15 +108,25 @@ async function startServer() {
         return res.status(400).json({ error: "البريد والرسالة مطلوبان" });
       }
 
-      // TARGET EMAIL: emadh5156@gmail.com
-      console.log(`[CONTACT FORM] Sending to emadh5156@gmail.com from ${email}: ${message}`);
-      
-      // Since I don't have a configured SMTP transport (no keys provided), 
-      // I am logging it reliably which the user can see in logs.
-      // In a production deployment, they should add an environment variable for SendGrid/Nodemailer.
+      if (!resend) {
+        console.warn("Resend API Key is missing. Message logged to console:", message);
+        return res.json({ success: true, message: "تم تسجيل رسالتك (برجاء تهيئة مفتاح Resend للإرسال الحقيقي)" });
+      }
+
+      const { data, error } = await resend.emails.send({
+        from: 'Dua App <onboarding@resend.dev>',
+        to: ['emadh5156@gmail.com'],
+        subject: 'رسالة جديدة من تطبيق دعاء للمتوفى',
+        html: `<p><strong>من:</strong> ${email}</p><p><strong>الرسالة:</strong></p><p>${message}</p>`,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
       
       res.json({ success: true, message: "تم إرسال رسالتك بنجاح إلى الإدارة" });
     } catch (error: any) {
+      console.error("Contact Form error:", error);
       res.status(500).json({ error: error.message });
     }
   });
