@@ -3,5 +3,8 @@
   "description": "An Islamic application to generate and listen to prayers for the deceased with custom voice options. تطبيق إسلامي لإنشاء والاستماع للأدعية للمتوفين مع خيارات صوتية مخصصة.",
   "requestFramePermissions": [
     "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

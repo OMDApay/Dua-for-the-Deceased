@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Moon, 
@@ -22,8 +22,7 @@ import {
   LogOut,
   X
 } from 'lucide-react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, loginWithGoogle, logout, handleRedirectResult } from './lib/firebase';
+import { auth } from './lib/firebase';
 import { TRANSLATIONS, KINSHIP_OPTIONS, Language, VoiceType } from './types';
 
 // Helper to add WAV header to raw PCM data
@@ -66,13 +65,8 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
 }
 
 export default function App() {
-  const [user] = useAuthState(auth);
   const [lang, setLang] = useState<Language>('ar');
   const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | 'about' | 'contact' | null>(null);
-
-  useEffect(() => {
-    // No longer need handleRedirectResult
-  }, []);
 
   const [isDark, setIsDark] = useState(false);
   const [duaText, setDuaText] = useState('');
@@ -89,7 +83,7 @@ export default function App() {
   const t = TRANSLATIONS[lang];
   const isRtl = lang === 'ar';
 
-  const Modal = ({ title, content, onClose }: { title: string, content: React.ReactNode, onClose: () => void }) => (
+  const Modal = ({ title, content, onClose }: { title: string, content: ReactNode, onClose: () => void }) => (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
@@ -134,8 +128,10 @@ export default function App() {
         })
       });
       const data = await response.json();
-      if (data.text) {
+      if (response.ok && data.text) {
         setDuaText(data.text);
+      } else {
+        alert(data.error || t.error);
       }
     } catch (error) {
       console.error("Translation Error:", error);
@@ -155,8 +151,10 @@ export default function App() {
         body: JSON.stringify({ text: duaText })
       });
       const data = await response.json();
-      if (data.text) {
+      if (response.ok && data.text) {
         setDuaText(data.text);
+      } else {
+        alert(data.error || t.error);
       }
     } catch (error) {
       console.error("Diacritics Error:", error);
@@ -167,7 +165,7 @@ export default function App() {
   };
 
   const handleAIGenerateDua = async () => {
-    if (!duaText.trim() || isAiGenerating) return;
+    if (isAiGenerating) return;
     setIsAiGenerating(true);
     try {
       const selectedKinship = KINSHIP_OPTIONS.find(opt => opt.id === kinship);
@@ -183,8 +181,10 @@ export default function App() {
         })
       });
       const data = await response.json();
-      if (data.text) {
+      if (response.ok && data.text) {
         setDuaText(data.text);
+      } else {
+        alert(data.error || t.error);
       }
     } catch (error) {
       console.error("AI Generation Error:", error);
@@ -197,14 +197,6 @@ export default function App() {
   const handleGenerateAudio = async () => {
     if (!duaText.trim() || isLoading) return;
     
-    if (!user) {
-      const confirmed = confirm(t.loginToVoice);
-      if (confirmed) {
-        await loginWithGoogle();
-      }
-      return;
-    }
-
     setIsLoading(true);
     try {
       const response = await fetch('/api/generate-audio', {
@@ -276,7 +268,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen font-sans ${isRtl ? 'font-arabic' : ''} islamic-pattern bg-fixed`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen font-sans ${isRtl ? 'font-arabic' : ''} islamic-pattern bg-fixed bg-emerald-50/30 dark:bg-stone-950`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header Controls */}
       <header className="p-4 flex justify-between items-center max-w-6xl mx-auto">
         <motion.div 
@@ -291,40 +283,6 @@ export default function App() {
         </motion.div>
 
         <div className="flex gap-2 items-center">
-          {user ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 sm:gap-2 bg-emerald-50 dark:bg-emerald-950/30 p-1 pr-3 rounded-full border border-emerald-100 dark:border-emerald-800"
-            >
-              <span className="text-[10px] sm:text-xs font-medium text-emerald-700 dark:text-emerald-400 hidden sm:inline">
-                {user.displayName?.split(' ')[0]}
-              </span>
-              <button
-                onClick={() => logout()}
-                className="p-1.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-800 text-emerald-600 transition-colors"
-                title={t.logoutBtn}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </motion.div>
-          ) : (
-            <div className="flex flex-col items-center gap-1">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => loginWithGoogle()}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                <span>{t.loginBtn}</span>
-              </motion.button>
-              <p className="text-[9px] text-red-500 font-bold bg-white/50 px-2 rounded-full">
-                {lang === 'ar' ? 'افتح في نافذة جديدة (أعلى اليسار) ليعمل الدخول' : 'Open in new tab to login'}
-              </p>
-            </div>
-          )}
-
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -384,7 +342,7 @@ export default function App() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAIGenerateDua}
-                  disabled={isAiGenerating || !duaText.trim()}
+                  disabled={isAiGenerating}
                   className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 disabled:opacity-50"
                   title={t.aiGenerateBtn}
                 >
@@ -603,9 +561,8 @@ export default function App() {
             onClose={() => setActiveModal(null)}
             content={
               <div className="space-y-4">
-                <p>نحن نقدر خصوصيتك. هذا التطبيق يستخدم خدمة Google Firebase لتأمين حسابك وحفظ بياناتك الأساسية (الاسم والبريد الإلكتروني).</p>
-                <p>لا نقوم بمشاركة بياناتك مع أي جهات خارجية خارج خدمات جوجل الضرورية لتشغيل البرنامج.</p>
-                <p>يتم استخدام ملفات تعريف الارتباط فقط لغرض المصادقة والحفاظ على جلسة تسجيل الدخول الخاصة بك.</p>
+                <p>نحن نقدر خصوصيتك. هذا التطبيق لا يتطلب تسجيل دخول ولا يقوم بجمع أي معلومات شخصية عن المستخدمين.</p>
+                <p>يتم تشغيل كافة العمليات بشكل فوري دون تخزين أي بيانات في قواعد البيانات حالياً.</p>
               </div>
             }
           />
@@ -620,7 +577,6 @@ export default function App() {
                 <ul className="list-disc pr-6 space-y-2">
                   <li>استخدام البرنامج في الأغراض المخصصة له (الأدعية والأذكار).</li>
                   <li>عدم إساءة استخدام خدمة توليد الصوت أو الذكاء الاصطناعي.</li>
-                  <li>المحافظة على سرية حسابك المرتبط بجوجل.</li>
                 </ul>
               </div>
             }
